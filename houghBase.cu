@@ -146,7 +146,29 @@ int main (int argc, char **argv)
   // execution configuration uses a 1-D grid of 1-D blocks, each made of 256 threads
   //1 thread por pixel
   int blockNum = ceil (w * h / 256);
+  
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+
+  // Registrar el evento de inicio
+  cudaEventRecord(start);
+
+  // Ejecutar el kernel
   GPU_HoughTran <<< blockNum, 256 >>> (d_in, w, h, d_hough, rMax, rScale, d_Cos, d_Sin);
+
+  // Registrar el evento de finalización
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+
+  // Calcular y mostrar el tiempo transcurrido
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  printf("Tiempo transcurrido para el kernel: %f ms\n", milliseconds);
+
+  // Liberar los eventos
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
 
   // get results from device
   cudaMemcpy (h_hough, d_hough, sizeof (int) * degreeBins * rBins, cudaMemcpyDeviceToHost);
